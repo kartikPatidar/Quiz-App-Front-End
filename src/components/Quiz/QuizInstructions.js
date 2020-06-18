@@ -30,7 +30,7 @@ const quizInstructions = () => (
                 </ul>
                 <div>
                     <span className="left"><Link to="/">No take me back</Link></span>
-                    <span className="right"><Link to="/play">Okay, Let's do this</Link></span>
+                    <span className="right"><Link to="/play/quiz">Okay, Let's do this</Link></span>
                 </div>
             </div>
         </>
