@@ -18,11 +18,14 @@ class Play extends Component {
         numberOfQuestions: 0,
         numberOfAnsweredQuestions: 0,
         currentQuestionIndex: 0,
+        correctAnswers: 0,
         score: 0,
         wrongAnswers: 0,
         hints: 5,
         fiftyFifty: 2,
         usedFiftyFifty: false,
+        nextButtonDisabled: false,
+        previousButtonDisabled: true,
         previousRandomNumbers: [],
         time: {
             minutes:3,
@@ -37,6 +40,10 @@ class Play extends Component {
         this.startTimer();
     }
 
+    componentWillUnmount() {
+        clearInterval(this.interval);
+    }
+
     displayQuestions = (questions = this.state.questions, currentQuestion, nextQuestion, previousQuestion) => {
         // let { currentQuestionIndex } = this.state;
         if(!isEmpty(this.state.questions)){
@@ -44,7 +51,7 @@ class Play extends Component {
             questions = this.state.questions;
             currentQuestion = questions[currentQuestionIndex];
             nextQuestion = questions[currentQuestionIndex + 1];
-            previousQuestion = questions[currentQuestion - 1];
+            previousQuestion = questions[currentQuestionIndex - 1];
             const answer = currentQuestion.answer;
             this.setState({
                 currentQuestion,
@@ -55,6 +62,7 @@ class Play extends Component {
                 previousRandomNumbers: []
             }, () => {
                 this.showOptions();
+                this.disableButtonHandler();
             })
         }
     };
@@ -77,10 +85,16 @@ class Play extends Component {
         });
         this.setState(previousState => ({
             score: previousState.score + 1,
+            correctAnswers: previousState.correctAnswers + 1,
             currentQuestionIndex: previousState.currentQuestionIndex + 1,
             numberOfAnsweredQuestions: previousState.numberOfAnsweredQuestions + 1
         }), () => {
-            this.displayQuestions(this.state.questions, this.state.currentQuestion, this.state.nextQuestion, this.state.previousQuestion);
+            if (this.state.nextQuestion === undefined) {
+                this.endGame();
+            }
+            else {
+                this.displayQuestions();
+            }
         });
     }
 
@@ -96,7 +110,12 @@ class Play extends Component {
             currentQuestionIndex: previousState.currentQuestionIndex + 1,
             numberOfAnsweredQuestions: previousState.numberOfAnsweredQuestions + 1
         }), () => {
-            this.displayQuestions();
+            if (this.state.nextQuestion === undefined) {
+                this.endGame();
+            }
+            else {
+                this.displayQuestions();
+            }
         });
     }
 
@@ -149,6 +168,7 @@ class Play extends Component {
             options.forEach((option, index) => {
                 if (option.innerHTML.toLowerCase() === this.state.answer.toLowerCase()) {
                     indexOfAnswer = index;
+                    console.log(indexOfAnswer);
                 }            
             });
     
@@ -174,27 +194,34 @@ class Play extends Component {
     fiftyFiftyHandler = () => {
         if (this.state.fiftyFifty > 0 && this.state.usedFiftyFifty === false) {
             const options = Array.from(document.querySelectorAll('.option'));
-            const randomNumbers = [];
+            const randomNumbers = [...this.state.previousRandomNumbers];
             let indexOfAnswer;
 
             options.forEach((option, index) => {
                 if (option.innerHTML.toLowerCase() === this.state.answer.toLowerCase()) {
                     indexOfAnswer = index;
+                    console.log(indexOfAnswer);
                 }
             });
-
+            randomNumbers.push(indexOfAnswer);
             let count = 0;
             while(count < 2) {
                 const randomNumber = Math.round(Math.random() * 3);
                 if (randomNumber !== indexOfAnswer) {
-                    if (randomNumbers.length < 2 && !randomNumbers.includes(randomNumber) && !randomNumbers.includes(indexOfAnswer)) {
+                    if (randomNumbers.length < 3 && !randomNumbers.includes(randomNumber)) {
                         randomNumbers.push(randomNumber);
+                        console.log('RandomNumbers : ', randomNumbers);
+                        console.log('First : ', randomNumber);
+                        this.state.previousRandomNumbers.push(randomNumber);
                         count++;
                     } else {
                         while (true) {
                             const newRandomNumber = Math.round(Math.random() * 3);
-                            if (!randomNumbers.includes(newRandomNumber) && !randomNumbers.includes(indexOfAnswer)) {
+                            if (!randomNumbers.includes(newRandomNumber)) {
                                 randomNumbers.push(newRandomNumber);
+                                console.log('RandowNumbers : ',randomNumbers);
+                                console.log('second : ', newRandomNumber);
+                                this.state.previousRandomNumbers.push(newRandomNumber);
                                 count++;
                                 break;
                             }
@@ -203,7 +230,7 @@ class Play extends Component {
                 }
             }
             options.forEach((option, index) => {
-                if (randomNumbers.includes(index)) {
+                if (randomNumbers.includes(index) && !(index === indexOfAnswer)) {
                     option.style.visibility = 'hidden';
                 }
             });
@@ -219,11 +246,8 @@ class Play extends Component {
         this.interval = setInterval(() => {
             const now = new Date();
             const distance = countDownTime - now;
-            console.log(distance);
             const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((distance % (1000 * 60)) / (1000 ));
-            console.log(minutes);
-            console.log(seconds);
 
             if(distance < 0) {
                 clearInterval(this.interval);
@@ -233,8 +257,7 @@ class Play extends Component {
                         seconds: 0
                     }
                 }, () => {
-                    alert('Quiz has ended!');
-                    this.props.history.push('/');
+                    this.endGame();
                 })
             } else {
                 this.setState({
@@ -245,6 +268,44 @@ class Play extends Component {
                 });
             }
         }, 1000);
+    }
+
+    disableButtonHandler = () => {
+        if (this.state.previousQuestion === undefined || this.state.currentQuestionIndex === 0) {
+            this.setState({
+                previousButtonDisabled: true
+            })
+        } else {
+            this.setState({
+                previousButtonDisabled: false
+            })
+        }
+
+        if (this.state.nextQuestion === undefined || this.state.currentQuestionIndex + 1 === this.state.numberOfQuestions) {
+            this.setState({
+                nextButtonDisabled: true
+            })
+        } else {
+            this.setState({
+                nextButtonDisabled: false
+            })
+        }
+    }
+
+    endGame = () => {
+        alert("Quiz has ended");
+        const { state } = this;
+        const playerStats = {
+            score: state.score,
+            numberOfQuestions: state.numberOfQuestions,
+            numberOfAnsweredQuestions: state.numberOfAnsweredQuestions,
+            correctAnswers: state.correctAnswers,
+            wrongAnswers : state.wrongAnswers,
+            fiftyFiftyUsed: 2 - state.fiftyFifty,
+            hintsUsed: 5 - state.hints
+        };
+        console.log(playerStats);
+        this.props.history.push('/');
     }
 
     render() {
@@ -290,8 +351,8 @@ class Play extends Component {
                         <p onClick={this.optionClickHandler} className="option">{currentQuestion.optionD}</p>
                     </div>
                     <div className="button-container">
-                        <button onClick={this.prevButtonHandler}>Previous</button>
-                        <button onClick={this.nextButtonHandler}>Next</button>
+                        <button disabled={this.state.previousButtonDisabled} onClick={this.prevButtonHandler}>Previous</button>
+                        <button disabled={this.state.nextButtonDisabled} onClick={this.nextButtonHandler}>Next</button>
                     </div>
                     <div className="quit-button-container">
                         <button onClick={this.quitButtonHandler}>Quit</button> 

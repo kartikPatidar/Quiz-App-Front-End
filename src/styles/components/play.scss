@@ -94,7 +94,7 @@
 
 .button-container button:first-child:hover {
     background-color: darken($blue, $amount: 20%);
-} 
+}
 
 .button-container button:nth-child(2) {
     background-color: $green;
@@ -103,6 +103,18 @@
 
 .button-container button:nth-child(2):hover {
     background-color: darken($green, $amount: 20%);
+}
+
+.button-container button:disabled {
+    background-color: #ccc;
+    color: $off-white;
+    cursor: default;
+}
+
+.button-container button:hover:disabled {
+    background-color: #ccc;
+    color: $off-white;
+    cursor: not-allowed;
 }
 
 .quit-button-container {
