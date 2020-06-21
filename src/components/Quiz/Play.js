@@ -23,12 +23,18 @@ class Play extends Component {
         hints: 5,
         fiftyFifty: 2,
         usedFiftyFifty: false,
-        time: {}
+        previousRandomNumbers: [],
+        time: {
+            minutes:3,
+            seconds:0
+        }
     };
+    interval = null;
 
     componentDidMount() {
         const { questions, currentQuestion, previousQuestion, nextQuestion } = this.state;
         this.displayQuestions(questions, currentQuestion, nextQuestion, previousQuestion);
+        this.startTimer();
     }
 
     displayQuestions = (questions = this.state.questions, currentQuestion, nextQuestion, previousQuestion) => {
@@ -45,7 +51,10 @@ class Play extends Component {
                 nextQuestion,
                 previousQuestion,
                 numberOfQuestions: questions.length,
-                answer
+                answer,
+                previousRandomNumbers: []
+            }, () => {
+                this.showOptions();
             })
         }
     };
@@ -124,9 +133,123 @@ class Play extends Component {
         document.getElementById('button-sound').play();
     }
 
+    showOptions = () => {
+        const options = Array.from(document.querySelectorAll('.option'));
+        options.forEach(option => {
+            option.style.visibility = 'visible';
+        });
+        this.setState({usedFiftyFifty: false});
+    }
+
+    hintsHandler = () => {
+        if (this.state.hints > 0) {
+            const options = Array.from(document.querySelectorAll('.option'));
+            let indexOfAnswer;
+    
+            options.forEach((option, index) => {
+                if (option.innerHTML.toLowerCase() === this.state.answer.toLowerCase()) {
+                    indexOfAnswer = index;
+                }            
+            });
+    
+            while(true) {
+                const randomNumber = Math.round(Math.random() * 3);
+                if (randomNumber !== indexOfAnswer  && !this.state.previousRandomNumbers.includes(randomNumber)) {
+                    options.forEach((option, index) => {
+                        if (index === randomNumber) {
+                            option.style.visibility = 'hidden';
+                            this.setState((prevState) => ({
+                                hints: prevState.hints - 1,
+                                previousRandomNumbers: prevState.previousRandomNumbers.concat(randomNumber)
+                            }));
+                        }
+                    });
+                    break;
+                }
+                if (this.state.previousRandomNumbers.length >=3 ) break;
+            }
+        }
+    }
+
+    fiftyFiftyHandler = () => {
+        if (this.state.fiftyFifty > 0 && this.state.usedFiftyFifty === false) {
+            const options = Array.from(document.querySelectorAll('.option'));
+            const randomNumbers = [];
+            let indexOfAnswer;
+
+            options.forEach((option, index) => {
+                if (option.innerHTML.toLowerCase() === this.state.answer.toLowerCase()) {
+                    indexOfAnswer = index;
+                }
+            });
+
+            let count = 0;
+            while(count < 2) {
+                const randomNumber = Math.round(Math.random() * 3);
+                if (randomNumber !== indexOfAnswer) {
+                    if (randomNumbers.length < 2 && !randomNumbers.includes(randomNumber) && !randomNumbers.includes(indexOfAnswer)) {
+                        randomNumbers.push(randomNumber);
+                        count++;
+                    } else {
+                        while (true) {
+                            const newRandomNumber = Math.round(Math.random() * 3);
+                            if (!randomNumbers.includes(newRandomNumber) && !randomNumbers.includes(indexOfAnswer)) {
+                                randomNumbers.push(newRandomNumber);
+                                count++;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            options.forEach((option, index) => {
+                if (randomNumbers.includes(index)) {
+                    option.style.visibility = 'hidden';
+                }
+            });
+            this.setState(prevState => ({
+                fiftyFifty: prevState.fiftyFifty -1,
+                usedFiftyFifty: true
+            }));
+        }
+    }
+
+    startTimer = () => {
+        const countDownTime = Date.now() + 180000;
+        this.interval = setInterval(() => {
+            const now = new Date();
+            const distance = countDownTime - now;
+            console.log(distance);
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / (1000 ));
+            console.log(minutes);
+            console.log(seconds);
+
+            if(distance < 0) {
+                clearInterval(this.interval);
+                this.setState({
+                    time: {
+                        minutes: 0,
+                        seconds: 0
+                    }
+                }, () => {
+                    alert('Quiz has ended!');
+                    this.props.history.push('/');
+                })
+            } else {
+                this.setState({
+                    time: {
+                        minutes,
+                        seconds
+                    }
+                });
+            }
+        }, 1000);
+    }
+
     render() {
         
-        const { currentQuestion, currentQuestionIndex, numberOfQuestions} = this.state;
+        const { currentQuestion, currentQuestionIndex, numberOfQuestions, hints, fiftyFifty, time} = this.state;
         return (
             <>
                 <Helmet><title>Quiz Page</title></Helmet>
@@ -141,19 +264,19 @@ class Play extends Component {
                     </div>
                     <div className="lifeline-container">
                         <p>
-                            <span className="mdi mdi-set-center mdi-24px lifeline-icon"></span>
-                            <span className="lifeline">2</span>
+                            <span onClick={this.fiftyFiftyHandler} className="mdi mdi-set-center mdi-24px lifeline-icon"></span>
+                            <span className="lifeline">{fiftyFifty}</span>
                         </p>
                         <p>
-                            <span className="mdi mdi-lightbulb-on-outline mdi-24px lifeline-icon"></span>
-                            <span className="lifeline">5</span>
+                            <span onClick={this.hintsHandler} className="mdi mdi-lightbulb-on-outline mdi-24px lifeline-icon"></span>
+                            <span className="lifeline">{hints}</span>
                         </p>
                     </div>
                     <div>
                         <p> 
                             <span className="left">Question :<b> {currentQuestionIndex + 1}</b> of {numberOfQuestions} </span>
-                            <span className="mdi mdi-clock-outline mdi-24px right">
-                            <span className="lifeline">2:15</span>
+                            <span className="mdi mdi-clock-outline mdi-24px right clock-icon">
+                            <span className="clock-timer">{time.minutes}:{time.seconds}</span>
                             </span>
                         </p>
                     </div>

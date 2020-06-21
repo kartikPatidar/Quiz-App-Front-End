@@ -20,10 +20,25 @@
         color: $green;
         cursor: pointer;
     }
+    
+    .lifeline-icon:hover {
+        color: $orange;
+        background-color: none;
+    }
 
     .lifeline {
         position: relative;
         top: -3px;
+    }
+
+    .clock-icon {
+        color: $green;
+    }
+
+    .clock-timer {
+        position: relative;
+        top: -3px;
+        color: green;
     }
 
     h5 {

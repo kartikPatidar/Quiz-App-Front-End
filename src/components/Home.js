@@ -9,7 +9,7 @@ const home = () => (
         <div id="home">
             <section>
                 <div style={{textAlign: "center"}}>
-                    <CubeOutlineIcon className="cube" size="8rem"/>
+                    <CubeOutlineIcon className="cube"/>
                 </div>
                 <h1>Quizzee</h1>
                 <div className="play-button-container">
