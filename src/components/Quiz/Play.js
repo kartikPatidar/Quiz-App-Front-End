@@ -33,6 +33,9 @@ class Play extends Component {
         }
     };
     interval = null;
+    wrongSound = React.createRef();
+    correctSound = React.createRef();
+    buttonSound = React.createRef();
 
     componentDidMount() {
         const { questions, currentQuestion, previousQuestion, nextQuestion } = this.state;
@@ -69,10 +72,10 @@ class Play extends Component {
 
     optionClickHandler = (e) => {
         if ( e.target.innerHTML.toLowerCase() === this.state.answer.toLowerCase() ){
-            document.getElementById('correct-sound').play();
+            this.correctSound.current.play();
             this.correctAnswer();
         } else {
-            document.getElementById('incorrect-sound').play();
+            this.wrongSound.current.play();
             this.wrongAnswer();
         }
     }
@@ -141,15 +144,15 @@ class Play extends Component {
         }
     }
 
-    quitButtonHandler = () => {
+    submitButtonHandler = () => {
         this.playButtonSound();
         if(window.confirm('Are you sure you want to quit?')) {
-            this.props.history.push('/');
+            this.endGame();
         }
     }
 
     playButtonSound = () => {
-        document.getElementById('button-sound').play();
+        this.buttonSound.current.play();
     }
 
     showOptions = () => {
@@ -200,7 +203,6 @@ class Play extends Component {
             options.forEach((option, index) => {
                 if (option.innerHTML.toLowerCase() === this.state.answer.toLowerCase()) {
                     indexOfAnswer = index;
-                    console.log(indexOfAnswer);
                 }
             });
             randomNumbers.push(indexOfAnswer);
@@ -210,8 +212,6 @@ class Play extends Component {
                 if (randomNumber !== indexOfAnswer) {
                     if (randomNumbers.length < 3 && !randomNumbers.includes(randomNumber)) {
                         randomNumbers.push(randomNumber);
-                        console.log('RandomNumbers : ', randomNumbers);
-                        console.log('First : ', randomNumber);
                         this.state.previousRandomNumbers.push(randomNumber);
                         count++;
                     } else {
@@ -219,8 +219,6 @@ class Play extends Component {
                             const newRandomNumber = Math.round(Math.random() * 3);
                             if (!randomNumbers.includes(newRandomNumber)) {
                                 randomNumbers.push(newRandomNumber);
-                                console.log('RandowNumbers : ',randomNumbers);
-                                console.log('second : ', newRandomNumber);
                                 this.state.previousRandomNumbers.push(newRandomNumber);
                                 count++;
                                 break;
@@ -293,7 +291,11 @@ class Play extends Component {
     }
 
     endGame = () => {
-        alert("Quiz has ended");
+        M.toast({
+            html: 'Quiz Submitted!',
+            classes: 'toast-ended',
+            displayLength: 3000
+        });
         const { state } = this;
         const playerStats = {
             score: state.score,
@@ -305,7 +307,7 @@ class Play extends Component {
             hintsUsed: 5 - state.hints
         };
         console.log(playerStats);
-        this.props.history.push('/');
+        this.props.history.push('/play/quizSummary', playerStats);
     }
 
     render() {
@@ -315,9 +317,9 @@ class Play extends Component {
             <>
                 <Helmet><title>Quiz Page</title></Helmet>
                 <>
-                    <audio id="correct-sound" src={correctSound}></audio>
-                    <audio id="incorrect-sound" src={incorrectSound}></audio>
-                    <audio id="button-sound" src={buttonSound}></audio>
+                    <audio ref={this.correctSound} src={correctSound}></audio>
+                    <audio ref={this.wrongSound} src={incorrectSound}></audio>
+                    <audio ref={this.buttonSound} src={buttonSound}></audio>
                 </>
                 <div className="question">
                     <div>
@@ -355,7 +357,7 @@ class Play extends Component {
                         <button disabled={this.state.nextButtonDisabled} onClick={this.nextButtonHandler}>Next</button>
                     </div>
                     <div className="quit-button-container">
-                        <button onClick={this.quitButtonHandler}>Quit</button> 
+                        <button onClick={this.submitButtonHandler}>Submit</button> 
                     </div>
                 </div>
             </>
